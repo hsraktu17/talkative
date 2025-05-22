@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
 
 import Link from 'next/link'
 import { login } from './action'
+import { supabaseBrowser } from '@/utils/supabase/client'
 
 type State = { message?: string }
 const initialState: State = {}
@@ -12,6 +13,16 @@ export default function LoginPage() {
   const loginHandler = async (_: State, formData: FormData): Promise<State> => {
     return await login(undefined, formData)
   }
+
+  const supabase =  supabaseBrowser()
+  // Fetch user info on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await supabase.auth.getUser()
+      console.log(user)
+    }
+    fetchUser()
+  }, [supabase])
 
   const [state, formAction, pending] = useActionState<State, FormData>(loginHandler, initialState)
 

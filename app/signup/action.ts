@@ -20,6 +20,8 @@ export async function signup(prevState: State | undefined, formData: FormData): 
   }
 
   const supabase = await supabaseServer()
+  const user = await supabase.auth.getUser()
+  console.log("user", user)
 
   const { error } = await supabase.auth.signUp({
     email,
