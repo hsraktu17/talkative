@@ -9,14 +9,14 @@ const initialState: State = {}
 
 export default function SignupPage() {
   const signupHandler = async (_: State, formData: FormData): Promise<State> => {
-    return await signup(undefined, formData)
+    return (await signup(undefined, formData)) ?? {}
   }
 
   const [state, formAction, pending] = useActionState<State, FormData>(signupHandler, initialState)
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f8fa] dark:bg-[#111b21]">
-      {/* Nav (optional, or use layout) */}
+      {/* Navbar */}
       <nav className="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#222e35] border-b border-gray-200 dark:border-[#2a3942]">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">P</div>
@@ -67,6 +67,18 @@ export default function SignupPage() {
             <input
               type="password"
               name="password"
+              placeholder="••••••••"
+              className="w-full rounded-lg px-4 py-2 bg-[#f7f8fa] dark:bg-[#2a3942] text-[#111b21] dark:text-white placeholder-gray-400 focus:outline-none"
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <input
+              type="password"
+              name="confirm_password"
               placeholder="••••••••"
               className="w-full rounded-lg px-4 py-2 bg-[#f7f8fa] dark:bg-[#2a3942] text-[#111b21] dark:text-white placeholder-gray-400 focus:outline-none"
               required
