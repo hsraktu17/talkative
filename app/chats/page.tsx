@@ -1,12 +1,14 @@
-"use client"
+// app/chats/page.tsx
+import Sidebar from "@/components/Sidebar";
+import ChatList from "@/components/ChatList";
+import ChatWindow from "@/components/ChatWindow";
 
-import LogoutButton from "@/components/Logout"
-
-export default function Home() {
-    return (
-        <div>
-            Hello
-            <LogoutButton/>
-        </div>
-    )
+export default function ChatsPage() {
+  return (
+    <div className="flex h-screen w-screen bg-[#f7f8fa] text-[#111b21] dark:bg-[#111b21]">
+      <Sidebar />
+      <ChatList />
+      <ChatWindow />
+    </div>
+  );
 }

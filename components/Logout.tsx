@@ -2,6 +2,7 @@
 import { supabaseBrowser } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from './ui/button'
+import { LogOutIcon } from 'lucide-react'
 
 export default function LogoutButton() {
   const router = useRouter()
@@ -13,8 +14,8 @@ export default function LogoutButton() {
   }
 
   return (
-    <Button onClick={handleLogout} className="bg-red-600 text-white px-4 py-2 rounded">
-      Logout
+    <Button onClick={handleLogout} className="px-4 py-2 rounded-full" variant={"secondary"}>
+      <LogOutIcon/>
     </Button>
   )
 }
