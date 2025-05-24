@@ -44,11 +44,13 @@ if (data.user) {
     .insert({
       id: data.user.id,
       display_name: name,
+      last_seen: new Date().toISOString(), // <-- Add this line
     })
   if (profileError) {
     return { message: 'Signup succeeded, but failed to create user profile.' }
   }
 }
+
 
   redirect('/chats')
 }
