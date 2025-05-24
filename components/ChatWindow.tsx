@@ -85,7 +85,7 @@ export default function ChatWindow({ chat, currentUser }: ChatWindowProps) {
               </div>
             </div>
           ))
-        )}
+        )} 
         <div ref={messagesEndRef} />
       </div>
       <form
