@@ -1,32 +1,82 @@
-"use client"
-import Sidebar from "@/components/Sidebar";
-import ChatList from "@/components/ChatList";
-import ChatWindow from "@/components/ChatWindow";
+"use client";
+
+import { useEffect, useState } from "react";
+import ChatSidebar from "@/components/ChatSidebar";
 import { supabaseBrowser } from "@/utils/supabase/client";
-import { useEffect } from "react";
+import { UserProfile, ChatListItem } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export default function ChatsPage() {
+  const supabase = supabaseBrowser();
+  const router = useRouter();
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [chatList, setChatList] = useState<ChatListItem[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const supabase = supabaseBrowser()
-  
-  
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
 
-  useEffect(()=>{
-    const fetchUser = async () =>{
-      const user = await supabase.auth.getUserIdentities()
-      console.log("supabase return", user)
-      // console.log(
-      //   "user",
-      //   user.data.user?.identities?.[0]?.identity_data?.name
-      // )
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+
+      // Get current user
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        router.push("/login");
+        return;
+      }
+
+      // Fetch your own profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      if (!profile) {
+        router.push("/login");
+        return;
+      }
+      setUser(profile);
+
+      // Fetch all other users for chat list
+      const { data: others } = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", authUser.id);
+
+      // Ensure correct type
+      const chatList: ChatListItem[] = (others || []).map((u) => ({
+        id: u.id,
+        display_name: u.display_name,
+        avatar_url: u.avatar_url,
+        last_seen: u.last_seen,
+        email: u.email,
+      }));
+      setChatList(chatList);
+
+      setLoading(false);
     }
-    fetchUser()
-  },[])
+    fetchData();
+  }, [supabase, router]);
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return null; // Will redirect if not logged in
+
   return (
     <div className="flex h-screen w-screen bg-[#f7f8fa] text-[#111b21] dark:bg-[#111b21]">
-      <Sidebar />
-      <ChatList />
-      <ChatWindow />
+      <ChatSidebar
+        chats={chatList}
+        user={user}
+        selected={selected}
+        onSelect={setSelected}
+      />
     </div>
   );
 }

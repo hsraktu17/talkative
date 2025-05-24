@@ -1,12 +1,5 @@
 // lib/types.ts
 
-export type UserProfile = {
-  id: string
-  email: string
-  name?: string
-  avatar_url?: string
-}
-
 export type Chat = {
   participants: unknown
   id: string
@@ -24,4 +17,25 @@ export type Message = {
   created_at: string
 }
 
+export type UserProfile = {
+  id: string;
+  display_name: string;
+  email: string;
+  avatar_url?: string | null;
+  last_seen?: string | null;
+};
 
+export type ChatListItem = {
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  last_seen?: string | null;
+  email: string;
+};
+
+export interface ChatSidebarProps {
+  chats: ChatListItem[];
+  user: UserProfile;
+  selected: string | null;
+  onSelect: (id: string) => void;
+}
