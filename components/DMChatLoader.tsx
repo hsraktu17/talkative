@@ -58,7 +58,6 @@ export default function DMChatLoader({ currentUser, peerId, children }: DMChatLo
           if (createError) throw createError;
           setChat(newChat as Chat);
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         setError(e.message ?? "Error creating/fetching chat");
         setChat(null);
