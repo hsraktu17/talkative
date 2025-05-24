@@ -58,8 +58,12 @@ export default function DMChatLoader({ currentUser, peerId, children }: DMChatLo
           if (createError) throw createError;
           setChat(newChat as Chat);
         }
-      } catch (e: any) {
-        setError(e.message ?? "Error creating/fetching chat");
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setError(e.message ?? "Error creating/fetching chat");
+        } else {
+          setError("Error creating/fetching chat");
+        }
         setChat(null);
       } finally {
         setLoading(false);

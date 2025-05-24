@@ -44,7 +44,15 @@ export default function ChatList() {
         setChats([]);
       } else {
         // Map your data to Chat[]
-        const chatList = (data || []).map((chat: any) => ({
+        type SupabaseChat = {
+          id: string;
+          name: string;
+          last_message?: string;
+          updated_at: string;
+          badge?: string;
+        };
+
+        const chatList = (data || []).map((chat: SupabaseChat) => ({
           id: chat.id,
           name: chat.name,
           message: chat.last_message || "",
