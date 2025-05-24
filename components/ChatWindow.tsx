@@ -14,7 +14,7 @@ export default function ChatWindow({ chat, currentUser }: ChatWindowProps) {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch messages for this chat
+  // Fetch chat messages on mount or when chat changes
   useEffect(() => {
     async function fetchMessages() {
       setLoading(true);
@@ -30,7 +30,38 @@ export default function ChatWindow({ chat, currentUser }: ChatWindowProps) {
     fetchMessages();
   }, [chat.id]);
 
-  // Auto-scroll to latest
+  // Realtime subscription for new messages
+  useEffect(() => {
+    const supabase = supabaseBrowser();
+    const channel = supabase
+      .channel(`messages:chat-${chat.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chat.id}`,
+        },
+        payload => {
+          const newMsg = payload.new as Message;
+          setMessages(prev => {
+            // Avoid duplicate messages (could happen due to optimistic update)
+            if (prev.some(msg => msg.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+      console.log("channel",supabase.channel(`messages:chat-${chat.id}`))
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chat.id]);
+
+  // Auto-scroll to the newest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -51,17 +82,19 @@ export default function ChatWindow({ chat, currentUser }: ChatWindowProps) {
       ])
       .select("*")
       .single();
-
-      console.log("data", data)
     if (!error && data) {
-      setMessages((prev) => [...prev, data as Message]);
+      setMessages(prev => {
+        // Optimistically add the message (will be deduped by Realtime anyway)
+        if (prev.some(msg => msg.id === data.id)) return prev;
+        return [...prev, data as Message];
+      });
       setInput("");
     }
   }
 
   return (
     <section className="flex flex-col h-full w-full bg-white dark:bg-[#0a2f24]">
-      <header className="p-4 font-bold border-b">CHat</header>
+      <header className="p-4 font-bold border-b">Chat</header>
       <div className="flex-1 overflow-y-auto px-4 py-2">
         {loading ? (
           <div>Loading messages…</div>
@@ -80,12 +113,12 @@ export default function ChatWindow({ chat, currentUser }: ChatWindowProps) {
               >
                 {msg.content}
                 <div className="text-[10px] text-gray-400">
-                  {new Date(msg.created_at).toLocaleTimeString()}
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             </div>
           ))
-        )} 
+        )}
         <div ref={messagesEndRef} />
       </div>
       <form
