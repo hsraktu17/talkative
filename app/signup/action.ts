@@ -23,19 +23,32 @@ export async function signup(prevState: State | undefined, formData: FormData): 
   const user = await supabase.auth.getUser()
   console.log("user", user)
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        name,
-      }
+  const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      name,
     }
-  })
-
-  if (error) {
-    return { message: error.message }
   }
+})
+
+if (error) {
+  return { message: error.message }
+}
+
+// Insert into 'profiles' table if user is returned immediately
+if (data.user) {
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      id: data.user.id,
+      display_name: name,
+    })
+  if (profileError) {
+    return { message: 'Signup succeeded, but failed to create user profile.' }
+  }
+}
 
   redirect('/chats')
 }
