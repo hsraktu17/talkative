@@ -79,15 +79,23 @@ export default function ChatsPage() {
         selected={selected}
         onSelect={setSelected}
       />
-       <main className="flex-1">
+      <main className="flex-1">
         <DMChatLoader currentUser={user} peerId={selected}>
           {({ chat, loading, error }) => {
             if (!selected) return <div>Select a user to start chatting.</div>;
             if (loading) return <div>Loading chat…</div>;
             if (error) return <div>Error: {error}</div>;
             if (!chat) return <div>Chat not found/created!</div>;
-            // Pass chat.id to your ChatWindow or messages UI
-            return <ChatWindow chat={chat} currentUser={user} />;
+            // Get the profile of the selected user (from your chatList)
+            const otherUser = chatList.find(u => u.id === selected);
+            if (!otherUser) return <div>User not found!</div>;
+            return (
+              <ChatWindow
+                chat={chat}
+                currentUser={user}
+                otherUser={otherUser}
+              />
+            );
           }}
         </DMChatLoader>
       </main>
