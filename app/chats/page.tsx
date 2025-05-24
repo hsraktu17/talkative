@@ -5,6 +5,8 @@ import ChatSidebar from "@/components/ChatSidebar";
 import { supabaseBrowser } from "@/utils/supabase/client";
 import { UserProfile, ChatListItem } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import DMChatLoader from "@/components/DMChatLoader";
+import ChatWindow from "@/components/ChatWindow";
 
 export default function ChatsPage() {
   const supabase = supabaseBrowser();
@@ -77,6 +79,18 @@ export default function ChatsPage() {
         selected={selected}
         onSelect={setSelected}
       />
+       <main className="flex-1">
+        <DMChatLoader currentUser={user} peerId={selected}>
+          {({ chat, loading, error }) => {
+            if (!selected) return <div>Select a user to start chatting.</div>;
+            if (loading) return <div>Loading chat…</div>;
+            if (error) return <div>Error: {error}</div>;
+            if (!chat) return <div>Chat not found/created!</div>;
+            // Pass chat.id to your ChatWindow or messages UI
+            return <ChatWindow chat={chat} currentUser={user} />;
+          }}
+        </DMChatLoader>
+      </main>
     </div>
   );
 }

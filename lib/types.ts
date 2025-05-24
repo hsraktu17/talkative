@@ -9,6 +9,7 @@ export type Chat = {
 }
 
 export type Message = {
+  content: string
   id: string
   chat_id: string
   sender_id: string
