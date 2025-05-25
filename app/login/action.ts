@@ -19,7 +19,7 @@ export async function login(prevState: unknown, formData: FormData) {
     return { message: error.message }
   }
 
-  // If login is successful, update profiles.last_seen
+  
   const userId = data?.user?.id
   if (userId) {
     await supabase

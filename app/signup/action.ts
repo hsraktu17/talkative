@@ -37,14 +37,14 @@ if (error) {
   return { message: error.message }
 }
 
-// Insert into 'profiles' table if user is returned immediately
+
 if (data.user) {
   const { error: profileError } = await supabase
     .from('profiles')
     .insert({
       id: data.user.id,
       display_name: name,
-      last_seen: new Date().toISOString(), // <-- Add this line
+      last_seen: new Date().toISOString(), 
     })
   if (profileError) {
     return { message: 'Signup succeeded, but failed to create user profile.' }

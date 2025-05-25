@@ -20,7 +20,7 @@ export default function ChatsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Load chats, user, and unread counts
+  
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -60,7 +60,7 @@ export default function ChatsPage() {
           .select("*")
           .eq("id", otherUserId)
           .single();
-        // Fetch last message preview
+        
         const { data: lastMsg } = await supabase
           .from("messages")
           .select("*")
@@ -68,7 +68,7 @@ export default function ChatsPage() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        // Count unread messages (not read, sent by other)
+        
         const { count: unreadCount } = await supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
@@ -91,7 +91,7 @@ export default function ChatsPage() {
           });
         }
       }
-      // Sort by latest
+      
       chatList.sort((a, b) => {
         const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
         const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
@@ -104,7 +104,7 @@ export default function ChatsPage() {
     fetchData();
   }, [supabase, router]);
 
-  // Real-time update for messages: increment unread_count for chat if not current user
+  
   useEffect(() => {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
@@ -127,14 +127,14 @@ export default function ChatsPage() {
                     last_message_time: msg.created_at,
                     last_message_preview: msg.content,
                     unread_count:
-                      // Only increment if message is from other user and unread
+  
                       msg.sender_id !== user?.id && !msg.read
                         ? (chat.unread_count || 0) + 1
                         : chat.unread_count,
                   }
                 : chat
             )
-              // sort by latest
+  
               .sort((a, b) => {
                 const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
                 const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
@@ -150,7 +150,7 @@ export default function ChatsPage() {
     };
   }, [supabase, user?.id]);
 
-  // When user selects a chat, mark all unread as read
+  
   useEffect(() => {
     if (!selected || !user) return;
     async function markRead() {
@@ -171,7 +171,7 @@ export default function ChatsPage() {
     markRead();
   }, [selected, user, chatList, supabase]);
 
-  // Called after sending message, to reorder sidebar instantly
+  
   const handleMessageSent = useCallback((msg: Message) => {
     setChatList(prev => {
       const updated = prev.map(c => {

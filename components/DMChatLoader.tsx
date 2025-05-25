@@ -46,7 +46,6 @@ export default function DMChatLoader({ currentUser, peerId, children }: DMChatLo
         if (existingChat) {
           setChat(existingChat as Chat);
         } else {
-          // Create new chat
           const { data: newChat, error: createError } = await supabase
             .from("chats")
             .insert([
@@ -73,6 +72,5 @@ export default function DMChatLoader({ currentUser, peerId, children }: DMChatLo
     fetchOrCreateDMChat();
   }, [currentUser.id, peerId]);
 
-  // Render children with chat, loading, and error props
   return <>{children({ chat, loading, error })}</>;
 }

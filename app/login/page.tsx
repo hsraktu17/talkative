@@ -15,7 +15,6 @@ export default function LoginPage() {
   }
 
   const supabase =  supabaseBrowser()
-  // Fetch user info on mount
   useEffect(() => {
     const fetchUser = async () => {
       const user = await supabase.auth.getUser()

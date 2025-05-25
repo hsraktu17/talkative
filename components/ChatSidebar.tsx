@@ -1,4 +1,4 @@
-import { FiMessageCircle } from "react-icons/fi"; // Or any chat/plus icon you like
+import { FiMessageCircle } from "react-icons/fi"; 
 import SidebarNav from "./SidebarNav";
 import ChatListItem from "./ChatListItem";
 import type { ChatListItem as ChatListItemType, UserProfile } from "@/lib/types";
@@ -9,7 +9,7 @@ type Props = {
   selected: string | null;
   onSelect: (id: string) => void;
   onlineUserIds?: string[];
-  onNewChatClick?: () => void; // Callback for button
+  onNewChatClick?: () => void; 
 };
 
 export default function ChatSidebar({
@@ -18,17 +18,17 @@ export default function ChatSidebar({
   selected,
   onSelect,
   onlineUserIds = [],
-  onNewChatClick, // pass this in
+  onNewChatClick,
 }: Props) {
   return (
     <aside className="flex flex-row h-full">
       <SidebarNav user={user} />
       <div className="flex flex-col bg-white w-80 border-r h-full relative overflow-hidden">
-        {/* Header */}
+
         <header className="flex items-center px-3 h-16 border-b space-x-2">
           <span className="font-bold text-lg flex-1">Chats</span>
         </header>
-        {/* Chat List */}
+
         <ul className="flex-1 overflow-y-auto">
           {chats.map(chat =>
             <ChatListItem
@@ -40,7 +40,6 @@ export default function ChatSidebar({
             />
           )}
         </ul>
-        {/* Floating New Chat Button */}
         <button
           onClick={onNewChatClick}
           title="New Chat"

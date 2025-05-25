@@ -11,7 +11,7 @@ import { Avatar } from "./Avatar";
 interface ChatWindowProps {
   chat: Chat;
   currentUser: UserProfile;
-  otherUser: ChatListItem; // Get full info for chat header/sidebar
+  otherUser: ChatListItem;
   onMessageSent: (msg: Message) => void;
 }
 
@@ -31,7 +31,7 @@ export default function ChatWindow({
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch messages for this chat
+  
   useEffect(() => {
     async function fetchMessages() {
       setLoading(true);
@@ -47,7 +47,7 @@ export default function ChatWindow({
     fetchMessages();
   }, [chat.id]);
 
-  // Real-time for new messages
+  
   useEffect(() => {
     const supabase = supabaseBrowser();
     const channel = supabase
@@ -74,7 +74,7 @@ export default function ChatWindow({
     };
   }, [chat.id]);
 
-  // Presence for typing/online
+  
   useEffect(() => {
     const supabase = supabaseBrowser();
     const channel = supabase.channel(`presence:chat-${chat.id}`, {
@@ -105,18 +105,18 @@ export default function ChatWindow({
     };
   }, [chat.id, currentUser.id]);
 
-  // Scroll to bottom on messages update
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Broadcast typing
+  
   const broadcastTyping = useCallback((typing: boolean) => {
     const channel = presenceChannelRef.current;
     if (channel) channel.track({ typing });
   }, []);
 
-  // Input + typing
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
     broadcastTyping(true);
@@ -126,7 +126,7 @@ export default function ChatWindow({
     }, 1500);
   };
 
-  // Send message
+  
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
