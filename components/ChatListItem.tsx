@@ -1,4 +1,3 @@
-"use client";
 import { Avatar } from "./Avatar";
 import type { ChatListItem as ChatListItemType } from "@/lib/types";
 
@@ -6,32 +5,46 @@ type Props = {
   chat: ChatListItemType;
   selected: boolean;
   onClick: () => void;
-  isOnline: boolean;
+  isOnline?: boolean;
 };
 
-export default function ChatListItem({ chat, selected, onClick, isOnline }: Props) {
+export default function ChatListItem({
+  chat,
+  selected,
+  onClick,
+  isOnline,
+}: Props) {
   return (
     <li
       onClick={onClick}
-      className={`flex items-center px-4 py-3 cursor-pointer space-x-3 border-b hover:bg-gray-100
-        ${selected ? "bg-green-50" : ""}`}
+      className={`flex items-center px-4 py-3 cursor-pointer border-b hover:bg-gray-100 transition 
+        ${selected ? "bg-gray-100" : ""}`}
     >
-      <Avatar name={chat.display_name} avatarUrl={chat.avatar_url} size={40} />
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
+      <Avatar name={chat.display_name} avatarUrl={chat.avatar_url} size={38} />
+      <div className="flex-1 min-w-0 ml-3">
+        <div className="flex items-center">
           <span className="font-semibold truncate">{chat.display_name}</span>
-          <span className="flex items-center gap-1">
-            {/* Only show badge if there are unread messages */}
-            {(chat.unread_count ?? 0) > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center min-w-[22px] px-2 py-0.5 text-xs font-bold leading-none text-white bg-green-500 rounded-full">
-                {chat.unread_count ?? 0}
-              </span>
-            )}
-            {isOnline ? <span className="w-2 h-2 bg-green-500 rounded-full ml-2" /> : null}
+          {isOnline && (
+            <span className="ml-2 inline-block w-2 h-2 rounded-full bg-green-400" />
+          )}
+          <span className="ml-auto text-xs text-gray-400">
+            {chat.last_message_time
+              ? new Date(chat.last_message_time).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""}
           </span>
         </div>
-        <div className="text-xs text-gray-500 truncate flex items-center space-x-1">
-          <span>{chat.last_message_preview ?? ""}</span>
+        <div className="flex items-center text-sm text-gray-500 min-w-0">
+          <span className="truncate flex-1">
+            {chat.last_message_preview || ""}
+          </span>
+          {chat.unread_count && chat.unread_count > 0 && (
+            <span className="ml-2 inline-block min-w-[22px] text-center rounded-full bg-green-500 text-white text-xs px-2 py-0.5">
+              {chat.unread_count}
+            </span>
+          )}
         </div>
       </div>
     </li>

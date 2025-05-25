@@ -23,7 +23,7 @@ export type Message = {
 };
 
 export type ChatListItem = {
-  id: string; // Peer user ID
+  id: string;
   display_name: string;
   avatar_url?: string | null;
   email: string;
@@ -31,8 +31,8 @@ export type ChatListItem = {
   chat_id: string;
   updated_at?: string;
   last_message_time?: string;
-  last_message_preview?: string; // Optional: for message preview
-  unread_count?: number;         // <-- Add this line!
+  last_message_preview?: string; 
+  unread_count?: number;         
 };
 
 
