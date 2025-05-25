@@ -23,7 +23,7 @@ export type Message = {
 };
 
 export type ChatListItem = {
-  id: string;
+  id: string; 
   display_name: string;
   avatar_url?: string | null;
   email: string;

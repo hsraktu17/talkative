@@ -40,7 +40,7 @@ export default function ChatListItem({
           <span className="truncate flex-1">
             {chat.last_message_preview || ""}
           </span>
-          {chat.unread_count && chat.unread_count > 0 && (
+          {(chat.unread_count ?? 0) > 0 && (
             <span className="ml-2 inline-block min-w-[22px] text-center rounded-full bg-green-500 text-white text-xs px-2 py-0.5">
               {chat.unread_count}
             </span>
