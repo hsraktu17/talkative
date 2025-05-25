@@ -1,18 +1,23 @@
 import Image from "next/image";
 
-interface AvatarProps {
+export function Avatar({
+  name,
+  avatarUrl,
+  size = 44,
+  className = "",
+}: {
   name: string;
   avatarUrl?: string | null;
-  size?: number; // px
+  size?: number;
   className?: string;
-}
-
-export function Avatar({ name, avatarUrl, size = 40, className = "" }: AvatarProps) {
+}) {
   if (avatarUrl) {
     return (
       <Image
         src={avatarUrl}
         alt={name}
+        width={size}
+        height={size}
         className={`rounded-full object-cover ${className}`}
         style={{ width: size, height: size }}
       />
@@ -21,7 +26,7 @@ export function Avatar({ name, avatarUrl, size = 40, className = "" }: AvatarPro
   const initial = (name || "?").trim().charAt(0).toUpperCase();
   return (
     <div
-      className={`rounded-full bg-gray-300 text-gray-800 flex items-center justify-center font-bold ${className}`}
+      className={`rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold ${className}`}
       style={{ width: size, height: size, fontSize: size / 2 }}
     >
       {initial}

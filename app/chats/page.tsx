@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ChatSidebar from "@/components/ChatSidebar";
 import ChatWindow from "@/components/ChatWindow";
 import PresenceHandler from "@/components/PresenceHandler";
@@ -12,8 +12,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export default function ChatsPage() {
   const supabase = supabaseBrowser();
   const router = useRouter();
-
-  // States
   const [user, setUser] = useState<UserProfile | null>(null);
   const [chatList, setChatList] = useState<ChatListItem[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -22,7 +20,7 @@ export default function ChatsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Fetch user, chats, and sidebar data
+  // Load chats, user, and unread counts
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -36,8 +34,6 @@ export default function ChatsPage() {
         router.push("/login");
         return;
       }
-
-      // Own profile
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
@@ -49,7 +45,6 @@ export default function ChatsPage() {
       }
       setUser(profile as UserProfile);
 
-      // All chats for this user, newest first
       const { data: chatsData } = await supabase
         .from("chats")
         .select("*")
@@ -57,7 +52,6 @@ export default function ChatsPage() {
         .order("updated_at", { ascending: false });
       setChats(chatsData || []);
 
-      // Sidebar: For each chat, get other user + last message
       const chatList: ChatListItem[] = [];
       for (const chat of chatsData || []) {
         const otherUserId = chat.user1_id === authUser.id ? chat.user2_id : chat.user1_id;
@@ -66,13 +60,22 @@ export default function ChatsPage() {
           .select("*")
           .eq("id", otherUserId)
           .single();
+        // Fetch last message preview
         const { data: lastMsg } = await supabase
           .from("messages")
-          .select("created_at")
+          .select("*")
           .eq("chat_id", chat.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+        // Count unread messages (not read, sent by other)
+        const { count: unreadCount } = await supabase
+          .from("messages")
+          .select("*", { count: "exact", head: true })
+          .eq("chat_id", chat.id)
+          .eq("read", false)
+          .neq("sender_id", authUser.id);
+
         if (otherProfile) {
           chatList.push({
             id: otherProfile.id,
@@ -83,16 +86,17 @@ export default function ChatsPage() {
             chat_id: chat.id,
             updated_at: chat.updated_at,
             last_message_time: lastMsg?.created_at || chat.updated_at,
+            last_message_preview: lastMsg?.content || "",
+            unread_count: unreadCount ?? 0,
           });
         }
       }
-      // Sort: latest on top
+      // Sort by latest
       chatList.sort((a, b) => {
         const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
         const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
         return bTime - aTime;
       });
-
       setChatList(chatList);
       setOnlineUserIds([authUser.id]);
       setLoading(false);
@@ -100,7 +104,7 @@ export default function ChatsPage() {
     fetchData();
   }, [supabase, router]);
 
-  // --- 1. Realtime: update chatList state only, do NOT re-fetch everything ---
+  // Real-time update for messages: increment unread_count for chat if not current user
   useEffect(() => {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
@@ -115,20 +119,28 @@ export default function ChatsPage() {
         },
         (payload) => {
           const msg = payload.new as Message;
-          setChatList(prev => {
-            const updated = prev.map(c => {
-              if (c.chat_id === msg.chat_id) {
-                return { ...c, last_message_time: msg.created_at };
-              }
-              return c;
-            });
-            updated.sort((a, b) => {
-              const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
-              const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
-              return bTime - aTime;
-            });
-            return updated;
-          });
+          setChatList(prev =>
+            prev.map(chat =>
+              chat.chat_id === msg.chat_id
+                ? {
+                    ...chat,
+                    last_message_time: msg.created_at,
+                    last_message_preview: msg.content,
+                    unread_count:
+                      // Only increment if message is from other user and unread
+                      msg.sender_id !== user?.id && !msg.read
+                        ? (chat.unread_count || 0) + 1
+                        : chat.unread_count,
+                  }
+                : chat
+            )
+              // sort by latest
+              .sort((a, b) => {
+                const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+                const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+                return bTime - aTime;
+              })
+          );
         }
       )
       .subscribe();
@@ -136,14 +148,35 @@ export default function ChatsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, user?.id]);
 
-  // Called when a message is sent (to reorder the sidebar instantly)
+  // When user selects a chat, mark all unread as read
+  useEffect(() => {
+    if (!selected || !user) return;
+    async function markRead() {
+      await supabase
+        .from("messages")
+        .update({ read: true })
+        .eq("chat_id", chatList.find(c => c.id === selected)?.chat_id)
+        .neq("sender_id", user?.id)
+        .eq("read", false);
+      setChatList(prev =>
+        prev.map(chat =>
+          chat.id === selected
+            ? { ...chat, unread_count: 0 }
+            : chat
+        )
+      );
+    }
+    markRead();
+  }, [selected, user, chatList, supabase]);
+
+  // Called after sending message, to reorder sidebar instantly
   const handleMessageSent = useCallback((msg: Message) => {
     setChatList(prev => {
       const updated = prev.map(c => {
         if (c.chat_id === msg.chat_id) {
-          return { ...c, last_message_time: msg.created_at };
+          return { ...c, last_message_time: msg.created_at, last_message_preview: msg.content };
         }
         return c;
       });
@@ -159,42 +192,50 @@ export default function ChatsPage() {
   if (loading || !user) return <div>Loading...</div>;
 
   return (
-    <div className="flex h-screen w-screen bg-[#f7f8fa] text-[#111b21] dark:bg-[#111b21]">
-      <PresenceHandler currentUser={user} />
-      <ChatSidebar
-        chats={chatList}
-        user={user}
-        selected={selected}
-        onSelect={setSelected}
-        onlineUserIds={onlineUserIds}
-      />
-      {selected ? (
-        <ChatWindow
-          chat={
-            chats.find(
-              c =>
-                (c.user1_id === user.id && c.user2_id === selected) ||
-                (c.user2_id === user.id && c.user1_id === selected)
-            )!
-          }
-          currentUser={user}
-          onMessageSent={handleMessageSent}
-          otherUser={
-            chatList.find(c => c.id === selected) || {
-              id: "",
-              display_name: "",
-              email: "",
-              avatar_url: undefined,
-              last_seen: undefined,
-              chat_id: "",
-              updated_at: "",
-              last_message_time: "",
-            }
-          }
+    <div className="w-full h-screen bg-[#f7f8fa] flex flex-col">
+      <div className="flex flex-1 min-h-0">
+        <ChatSidebar
+          chats={chatList}
+          user={user}
+          selected={selected}
+          onSelect={setSelected}
+          onlineUserIds={onlineUserIds}
         />
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">Select a chat to start messaging</div>
-      )}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <PresenceHandler currentUser={user} />
+          {selected ? (
+            <ChatWindow
+              chat={
+                chats.find(
+                  c =>
+                    (c.user1_id === user.id && c.user2_id === selected) ||
+                    (c.user2_id === user.id && c.user1_id === selected)
+                )!
+              }
+              currentUser={user}
+              onMessageSent={handleMessageSent}
+              otherUser={
+                chatList.find(c => c.id === selected) || {
+                  id: "",
+                  display_name: "",
+                  email: "",
+                  avatar_url: undefined,
+                  last_seen: undefined,
+                  chat_id: "",
+                  updated_at: "",
+                  last_message_time: "",
+                  unread_count: 0,
+                  last_message_preview: "",
+                }
+              }
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
+              Select a chat to start messaging
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

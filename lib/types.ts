@@ -19,10 +19,11 @@ export type Message = {
   sender_id: string;
   content: string;
   created_at: string;
+  read: boolean;
 };
 
 export type ChatListItem = {
-  id: string; // Peer user id
+  id: string; // Peer user ID
   display_name: string;
   avatar_url?: string | null;
   email: string;
@@ -30,7 +31,10 @@ export type ChatListItem = {
   chat_id: string;
   updated_at?: string;
   last_message_time?: string;
+  last_message_preview?: string; // Optional: for message preview
+  unread_count?: number;         // <-- Add this line!
 };
+
 
 export interface ChatSidebarProps {
   chats: ChatListItem[];
