@@ -8,7 +8,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 interface ChatWindowProps {
   chat: Chat;
   currentUser: UserProfile;
-  otherUser: UserProfile; // <-- required for typing/online!
+  otherUser: UserProfile; // required for typing/online!
 }
 
 export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowProps) {
@@ -75,7 +75,9 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
 
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
+      // Debugging output for presence state:
       // console.log("Presence State", state);
+
       type PresenceInfo = { typing: boolean };
       const typers = Object.entries(state)
         .filter(([id, info]) => {
@@ -147,7 +149,7 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
       setInput("");
       broadcastTyping(false);
 
-      // Update last_seen for current user
+      // Update last_seen for current user (UTC ISO)
       await supabase
         .from("profiles")
         .update({ last_seen: new Date().toISOString() })
@@ -161,10 +163,17 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
   // Helper: show typing indicator if peer is typing
   const peerIsTyping = typingUsers.includes(otherUser.id);
 
-  // Format peer last seen (with date-fns)
+  // Format peer last seen (with date-fns, UTC safe)
   let peerLastSeen = "";
   if (otherUser.last_seen) {
-    peerLastSeen = formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true });
+    // Debugging for troubleshooting
+    // console.log("last_seen raw:", otherUser.last_seen, "Date parsed:", new Date(otherUser.last_seen));
+    try {
+      const dateObj = new Date(otherUser.last_seen);
+      peerLastSeen = formatDistanceToNow(dateObj, { addSuffix: true });
+    } catch {
+      peerLastSeen = "unknown";
+    }
   }
 
   return (

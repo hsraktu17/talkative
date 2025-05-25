@@ -7,6 +7,7 @@ import { UserProfile, ChatListItem } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import DMChatLoader from "@/components/DMChatLoader";
 import ChatWindow from "@/components/ChatWindow";
+import PresenceHandler from "@/components/PresenceHandler"; // <-- Add this
 
 export default function ChatsPage() {
   const supabase = supabaseBrowser();
@@ -66,6 +67,7 @@ export default function ChatsPage() {
       setLoading(false);
     }
     fetchData();
+    // eslint-disable-next-line
   }, [supabase, router]);
 
   if (loading) return <div>Loading...</div>;
@@ -73,6 +75,9 @@ export default function ChatsPage() {
 
   return (
     <div className="flex h-screen w-screen bg-[#f7f8fa] text-[#111b21] dark:bg-[#111b21]">
+      {/* Handles global presence heartbeat */}
+      <PresenceHandler currentUser={user} />
+
       <ChatSidebar
         chats={chatList}
         user={user}
