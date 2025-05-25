@@ -2,29 +2,30 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import ChatSidebar from "@/components/ChatSidebar";
-import { supabaseBrowser } from "@/utils/supabase/client";
-import { UserProfile, ChatListItem, Message, Chat } from "@/lib/types";
-import { useRouter } from "next/navigation";
 import ChatWindow from "@/components/ChatWindow";
+import PresenceHandler from "@/components/PresenceHandler";
+import { supabaseBrowser } from "@/utils/supabase/client";
+import type { UserProfile, ChatListItem, Message, Chat } from "@/lib/types";
+import { useRouter } from "next/navigation";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export default function ChatsPage() {
   const supabase = supabaseBrowser();
   const router = useRouter();
+
+  // States
   const [user, setUser] = useState<UserProfile | null>(null);
   const [chatList, setChatList] = useState<ChatListItem[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Fetch chats+sidebar on mount only
+  // Fetch user, chats, and sidebar data
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
@@ -42,23 +43,21 @@ export default function ChatsPage() {
         .select("*")
         .eq("id", authUser.id)
         .single();
-
       if (!profile) {
         router.push("/login");
         return;
       }
       setUser(profile as UserProfile);
 
-      // Fetch all chats for user, most recent first
+      // All chats for this user, newest first
       const { data: chatsData } = await supabase
         .from("chats")
         .select("*")
         .or(`user1_id.eq.${authUser.id},user2_id.eq.${authUser.id}`)
         .order("updated_at", { ascending: false });
-
       setChats(chatsData || []);
 
-      // For each chat, get the other user's profile and last message
+      // Sidebar: For each chat, get other user + last message
       const chatList: ChatListItem[] = [];
       for (const chat of chatsData || []) {
         const otherUserId = chat.user1_id === authUser.id ? chat.user2_id : chat.user1_id;
@@ -67,7 +66,6 @@ export default function ChatsPage() {
           .select("*")
           .eq("id", otherUserId)
           .single();
-        // Latest message
         const { data: lastMsg } = await supabase
           .from("messages")
           .select("created_at")
@@ -88,7 +86,7 @@ export default function ChatsPage() {
           });
         }
       }
-      // Sort latest at top
+      // Sort: latest on top
       chatList.sort((a, b) => {
         const aTime = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
         const bTime = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
@@ -100,7 +98,6 @@ export default function ChatsPage() {
       setLoading(false);
     }
     fetchData();
-    // eslint-disable-next-line
   }, [supabase, router]);
 
   // --- 1. Realtime: update chatList state only, do NOT re-fetch everything ---
@@ -135,15 +132,13 @@ export default function ChatsPage() {
         }
       )
       .subscribe();
-
     channelRef.current = channel;
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line
   }, [supabase]);
 
-  // --- 2. When you send a message, call this callback ---
+  // Called when a message is sent (to reorder the sidebar instantly)
   const handleMessageSent = useCallback((msg: Message) => {
     setChatList(prev => {
       const updated = prev.map(c => {
@@ -161,31 +156,11 @@ export default function ChatsPage() {
     });
   }, []);
 
-  // --- Find the right chat and user for the ChatWindow ---
-  let chatObj: Chat | undefined;
-  let otherUser: UserProfile | undefined;
-  if (selected && user) {
-    chatObj = chats.find(
-      c =>
-        (c.user1_id === user.id && c.user2_id === selected) ||
-        (c.user2_id === user.id && c.user1_id === selected)
-    );
-    const selectedChat = chatList.find(c => c.id === selected);
-    if (selectedChat) {
-      otherUser = {
-        id: selectedChat.id,
-        display_name: selectedChat.display_name,
-        email: selectedChat.email,
-        avatar_url: selectedChat.avatar_url,
-        last_seen: selectedChat.last_seen,
-      };
-    }
-  }
-
   if (loading || !user) return <div>Loading...</div>;
 
   return (
     <div className="flex h-screen w-screen bg-[#f7f8fa] text-[#111b21] dark:bg-[#111b21]">
+      <PresenceHandler currentUser={user} />
       <ChatSidebar
         chats={chatList}
         user={user}
@@ -193,17 +168,32 @@ export default function ChatsPage() {
         onSelect={setSelected}
         onlineUserIds={onlineUserIds}
       />
-      {chatObj && otherUser ? (
+      {selected ? (
         <ChatWindow
-          chat={chatObj}
+          chat={
+            chats.find(
+              c =>
+                (c.user1_id === user.id && c.user2_id === selected) ||
+                (c.user2_id === user.id && c.user1_id === selected)
+            )!
+          }
           currentUser={user}
-          otherUser={otherUser}
           onMessageSent={handleMessageSent}
+          otherUser={
+            chatList.find(c => c.id === selected) || {
+              id: "",
+              display_name: "",
+              email: "",
+              avatar_url: undefined,
+              last_seen: undefined,
+              chat_id: "",
+              updated_at: "",
+              last_message_time: "",
+            }
+          }
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-lg text-gray-500">
-          Select a user to start chatting
-        </div>
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">Select a chat to start messaging</div>
       )}
     </div>
   );

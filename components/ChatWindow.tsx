@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPaperclip, FiSmile, FiMic, FiSend, FiSearch, FiMoreVertical } from "react-icons/fi";
 import { format } from "date-fns";
-import type { Chat, Message, UserProfile } from "@/lib/types";
+import type { Chat, Message, UserProfile, ChatListItem } from "@/lib/types";
 import { supabaseBrowser } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Avatar } from "./Avatar";
@@ -11,11 +11,16 @@ import { Avatar } from "./Avatar";
 interface ChatWindowProps {
   chat: Chat;
   currentUser: UserProfile;
-  otherUser: UserProfile;
-  onMessageSent?: (msg: Message) => void; // <-- Add this!
+  otherUser: ChatListItem; // Get full info for chat header/sidebar
+  onMessageSent: (msg: Message) => void;
 }
 
-export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent }: ChatWindowProps) {
+export default function ChatWindow({
+  chat,
+  currentUser,
+  otherUser,
+  onMessageSent,
+}: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -26,7 +31,7 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch chat messages on mount or chat change
+  // Fetch messages for this chat
   useEffect(() => {
     async function fetchMessages() {
       setLoading(true);
@@ -36,13 +41,13 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
         .select("*")
         .eq("chat_id", chat.id)
         .order("created_at", { ascending: true });
-      if (data) setMessages(data as Message[]);
+      setMessages(data as Message[] ?? []);
       setLoading(false);
     }
     fetchMessages();
   }, [chat.id]);
 
-  // Realtime subscription for new messages
+  // Real-time for new messages
   useEffect(() => {
     const supabase = supabaseBrowser();
     const channel = supabase
@@ -69,13 +74,12 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
     };
   }, [chat.id]);
 
-  // Presence for typing/online indicator
+  // Presence for typing/online
   useEffect(() => {
     const supabase = supabaseBrowser();
     const channel = supabase.channel(`presence:chat-${chat.id}`, {
       config: { presence: { key: currentUser.id } },
     });
-
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       type PresenceInfo = { typing: boolean };
@@ -90,31 +94,29 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
       setTypingUsers(typers);
       setOnlineUserIds(Object.keys(state));
     });
-
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         channel.track({ typing: false });
       }
     });
-
     presenceChannelRef.current = channel;
     return () => {
       supabase.removeChannel(channel);
     };
   }, [chat.id, currentUser.id]);
 
-  // Auto-scroll to the newest message
+  // Scroll to bottom on messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Broadcast typing state
+  // Broadcast typing
   const broadcastTyping = useCallback((typing: boolean) => {
     const channel = presenceChannelRef.current;
     if (channel) channel.track({ typing });
   }, []);
 
-  // Handle input change and typing indicator
+  // Input + typing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
     broadcastTyping(true);
@@ -147,9 +149,7 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
       });
       setInput("");
       broadcastTyping(false);
-
-      // NOTIFY SIDEBAR TO REORDER!
-      if (onMessageSent) onMessageSent(data as Message);
+      onMessageSent(data as Message); // Reorders sidebar on send
     }
   }
 
@@ -185,7 +185,7 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
         </div>
       </div>
 
-      {/* Body */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6 bg-[url('/whatsapp-bg.png')] bg-repeat">
         {loading ? (
           <div>Loading messages…</div>
@@ -214,7 +214,7 @@ export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Typing indicator */}
+      {/* Typing indicator (if needed for UI) */}
       {peerIsTyping && (
         <div className="absolute bottom-20 left-32 text-xs text-green-500 px-4 pb-2">
           Typing…
