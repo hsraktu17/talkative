@@ -12,9 +12,10 @@ interface ChatWindowProps {
   chat: Chat;
   currentUser: UserProfile;
   otherUser: UserProfile;
+  onMessageSent?: (msg: Message) => void; // <-- Add this!
 }
 
-export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowProps) {
+export default function ChatWindow({ chat, currentUser, otherUser, onMessageSent }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -71,7 +72,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
   // Presence for typing/online indicator
   useEffect(() => {
     const supabase = supabaseBrowser();
-
     const channel = supabase.channel(`presence:chat-${chat.id}`, {
       config: { presence: { key: currentUser.id } },
     });
@@ -147,10 +147,12 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
       });
       setInput("");
       broadcastTyping(false);
+
+      // NOTIFY SIDEBAR TO REORDER!
+      if (onMessageSent) onMessageSent(data as Message);
     }
   }
 
-  // Online/typing
   const peerIsOnline = onlineUserIds.includes(otherUser.id);
   const peerIsTyping = typingUsers.includes(otherUser.id);
 
@@ -201,7 +203,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
               >
                 <div className="text-sm">{msg.content}</div>
                 <div className="text-[10px] text-gray-400 flex justify-end mt-1">
-                  {/* Timestamp */}
                   {msg.created_at
                     ? format(new Date(msg.created_at), "HH:mm")
                     : ""}
