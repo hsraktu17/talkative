@@ -1,4 +1,4 @@
-"use client";
+import { FiMessageCircle } from "react-icons/fi"; // Or any chat/plus icon you like
 import SidebarNav from "./SidebarNav";
 import ChatListItem from "./ChatListItem";
 import type { ChatListItem as ChatListItemType, UserProfile } from "@/lib/types";
@@ -9,6 +9,7 @@ type Props = {
   selected: string | null;
   onSelect: (id: string) => void;
   onlineUserIds?: string[];
+  onNewChatClick?: () => void; // Callback for button
 };
 
 export default function ChatSidebar({
@@ -17,39 +18,44 @@ export default function ChatSidebar({
   selected,
   onSelect,
   onlineUserIds = [],
+  onNewChatClick, // pass this in
 }: Props) {
   return (
     <aside className="flex flex-row h-full">
-      {/* Left icon sidebar */}
       <SidebarNav user={user} />
-      {/* Main chat sidebar */}
-      <div className="flex flex-col w-80 bg-white border-r h-full">
+      <div className="flex flex-col bg-white w-80 border-r h-full relative overflow-hidden">
         {/* Header */}
-        <header className="flex items-center px-4 h-16 border-b">
+        <header className="flex items-center px-3 h-16 border-b space-x-2">
           <span className="font-bold text-lg flex-1">Chats</span>
-          {/* Add filter/search here if needed */}
         </header>
         {/* Chat List */}
-        <ul className="flex-1 overflow-y-auto bg-white">
-          {chats.map(chat => (
+        <ul className="flex-1 overflow-y-auto">
+          {chats.map(chat =>
             <ChatListItem
-              key={chat.chat_id || chat.id}
+              key={chat.id}
               chat={chat}
               selected={selected === chat.id}
               onClick={() => onSelect(chat.id)}
-              isOnline={onlineUserIds?.includes(chat.id)}
+              isOnline={onlineUserIds.includes(chat.id)}
             />
-          ))}
+          )}
         </ul>
-
-
-        {/* Footer: User info */}
-        <footer className="border-t px-4 py-3 flex items-center space-x-2 text-xs bg-white">
-          <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center font-bold">
-            {user.display_name?.charAt(0)?.toUpperCase()}
-          </div>
-          <span className="truncate text-gray-800">{user.display_name}</span>
-        </footer>
+        {/* Floating New Chat Button */}
+        <button
+          onClick={onNewChatClick}
+          title="New Chat"
+          className="
+            absolute 
+            bottom-12 right-6
+            bg-green-500 hover:bg-green-600 
+            text-white shadow-lg
+            rounded-full w-12 h-12 flex items-center justify-center
+            transition
+            z-20
+          "
+        >
+          <FiMessageCircle size={28} />
+        </button>
       </div>
     </aside>
   );
