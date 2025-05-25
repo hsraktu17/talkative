@@ -1,5 +1,5 @@
 "use client";
-import SidebarNav from "./SidebarNav";
+import SidebarNav from "./SidebarNav"; // Dummy or real
 import ChatListItem from "./ChatListItem";
 import { FiSearch, FiFilter } from "react-icons/fi";
 import type { ChatListItem as ChatListItemType, UserProfile } from "@/lib/types";
@@ -9,28 +9,54 @@ type Props = {
   user: UserProfile;
   selected: string | null;
   onSelect: (id: string) => void;
+  onlineUserIds?: string[];
 };
 
-export default function ChatSidebar({ chats, user, selected, onSelect }: Props) {
+export default function ChatSidebar({
+  chats,
+  user,
+  selected,
+  onSelect,
+  onlineUserIds = [],
+}: Props) {
+  const sortedChats = [...chats].sort((a, b) => {
+    const aTime = a.last_message_time
+      ? new Date(a.last_message_time).getTime()
+      : a.updated_at
+      ? new Date(a.updated_at).getTime()
+      : 0;
+    const bTime = b.last_message_time
+      ? new Date(b.last_message_time).getTime()
+      : b.updated_at
+      ? new Date(b.updated_at).getTime()
+      : 0;
+    return bTime - aTime;
+  });
+
   return (
     <aside className="flex flex-row h-full">
       <SidebarNav />
       <div className="flex flex-col bg-white w-80 border-r h-full">
-        {/* Header */}
         <header className="flex items-center px-3 h-16 border-b space-x-2">
           <span className="font-bold text-lg flex-1">Chats</span>
           <button><FiFilter size={18} /></button>
           <button><FiSearch size={18} /></button>
         </header>
-        {/* Chat List */}
         <ul className="flex-1 overflow-y-auto">
-          {chats.map(chat =>
-            <ChatListItem key={chat.id} chat={chat} selected={selected === chat.id} onClick={() => onSelect(chat.id)} />
+          {sortedChats.map(chat =>
+            <ChatListItem
+              key={chat.id}
+              chat={chat}
+              selected={selected === chat.id}
+              onClick={() => onSelect(chat.id)}
+              isOnline={onlineUserIds.includes(chat.id)}
+            />
           )}
         </ul>
-        {/* Footer: User info */}
         <footer className="border-t p-4 flex items-center space-x-2 text-xs">
-          <div className="w-7 h-7 bg-gray-300 rounded-full"></div>
+          <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center font-bold">
+            {user.display_name?.charAt(0)?.toUpperCase()}
+          </div>
           <span>{user.display_name}</span>
         </footer>
       </div>

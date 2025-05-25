@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPaperclip, FiSmile, FiMic, FiSend, FiSearch, FiMoreVertical } from "react-icons/fi";
+import { format } from "date-fns";
 import type { Chat, Message, UserProfile } from "@/lib/types";
 import { supabaseBrowser } from "@/utils/supabase/client";
-import { format } from "date-fns";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Avatar } from "./Avatar";
 
@@ -147,7 +147,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
       });
       setInput("");
       broadcastTyping(false);
-      // Optionally update last_seen here if needed
     }
   }
 
@@ -165,7 +164,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
           size={40}
           className="mr-4"
         />
-
         <div className="flex flex-col flex-1">
           <div className="font-semibold">{otherUser.display_name}</div>
           <div className="text-xs text-gray-500">
@@ -174,7 +172,7 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
             ) : peerIsOnline ? (
               <span className="text-green-500">Online</span>
             ) : (
-              <span>Last seen {/* TODO: Format last_seen here if needed */}</span>
+              <span className="text-gray-400">Offline</span>
             )}
           </div>
         </div>
@@ -203,7 +201,10 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
               >
                 <div className="text-sm">{msg.content}</div>
                 <div className="text-[10px] text-gray-400 flex justify-end mt-1">
-                  {format(new Date(msg.created_at), "HH:mm")}
+                  {/* Timestamp */}
+                  {msg.created_at
+                    ? format(new Date(msg.created_at), "HH:mm")
+                    : ""}
                 </div>
               </div>
             </div>
