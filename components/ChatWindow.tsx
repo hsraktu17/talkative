@@ -1,14 +1,17 @@
 "use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FiPaperclip, FiSmile, FiMic, FiSend, FiSearch, FiMoreVertical } from "react-icons/fi";
 import type { Chat, Message, UserProfile } from "@/lib/types";
 import { supabaseBrowser } from "@/utils/supabase/client";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { Avatar } from "./Avatar";
 
 interface ChatWindowProps {
   chat: Chat;
   currentUser: UserProfile;
-  otherUser: UserProfile; // required for typing/online!
+  otherUser: UserProfile;
 }
 
 export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowProps) {
@@ -22,7 +25,7 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch chat messages on mount or when chat changes
+  // Fetch chat messages on mount or chat change
   useEffect(() => {
     async function fetchMessages() {
       setLoading(true);
@@ -65,7 +68,7 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
     };
   }, [chat.id]);
 
-  // Supabase Presence for typing/online indicator
+  // Presence for typing/online indicator
   useEffect(() => {
     const supabase = supabaseBrowser();
 
@@ -75,9 +78,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
 
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
-      // Debugging output for presence state:
-      // console.log("Presence State", state);
-
       type PresenceInfo = { typing: boolean };
       const typers = Object.entries(state)
         .filter(([id, info]) => {
@@ -93,7 +93,6 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
 
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
-        // Track yourself as "online" (not typing initially)
         channel.track({ typing: false });
       }
     });
@@ -122,10 +121,10 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       broadcastTyping(false);
-    }, 1800);
+    }, 1500);
   };
 
-  // Send message, update last_seen, and reset typing state
+  // Send message
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
@@ -148,65 +147,63 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
       });
       setInput("");
       broadcastTyping(false);
-
-      // Update last_seen for current user (UTC ISO)
-      await supabase
-        .from("profiles")
-        .update({ last_seen: new Date().toISOString() })
-        .eq("id", currentUser.id);
+      // Optionally update last_seen here if needed
     }
   }
 
-  // Helper: is the peer online? (otherUser.id is the peer)
+  // Online/typing
   const peerIsOnline = onlineUserIds.includes(otherUser.id);
-
-  // Helper: show typing indicator if peer is typing
   const peerIsTyping = typingUsers.includes(otherUser.id);
 
-  // Format peer last seen (with date-fns, UTC safe)
-  let peerLastSeen = "";
-  if (otherUser.last_seen) {
-    // Debugging for troubleshooting
-    // console.log("last_seen raw:", otherUser.last_seen, "Date parsed:", new Date(otherUser.last_seen));
-    try {
-      const dateObj = new Date(otherUser.last_seen);
-      peerLastSeen = formatDistanceToNow(dateObj, { addSuffix: true });
-    } catch {
-      peerLastSeen = "unknown";
-    }
-  }
-
   return (
-    <section className="flex flex-col h-full w-full bg-white dark:bg-[#0a2f24]">
-      <header className="p-4 font-bold border-b flex items-center space-x-3">
-        <span>{otherUser.display_name}</span>
-        {peerIsOnline ? (
-          <span className="text-green-500 text-xs">● Online</span>
-        ) : (
-          <span className="text-gray-400 text-xs">
-            ● Last seen {peerLastSeen}
-          </span>
-        )}
-      </header>
-      <div className="flex-1 overflow-y-auto px-4 py-2">
+    <div className="flex flex-col h-full w-full bg-[#f0f2f5] relative">
+      {/* Header */}
+      <div className="flex items-center px-6 py-3 border-b bg-white h-20 shadow-sm">
+        <Avatar
+          name={otherUser.display_name}
+          avatarUrl={otherUser.avatar_url}
+          size={40}
+          className="mr-4"
+        />
+
+        <div className="flex flex-col flex-1">
+          <div className="font-semibold">{otherUser.display_name}</div>
+          <div className="text-xs text-gray-500">
+            {peerIsTyping ? (
+              <span className="text-green-500">Typing…</span>
+            ) : peerIsOnline ? (
+              <span className="text-green-500">Online</span>
+            ) : (
+              <span>Last seen {/* TODO: Format last_seen here if needed */}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button><FiSearch size={20} /></button>
+          <button><FiPaperclip size={20} /></button>
+          <button><FiMoreVertical size={20} /></button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 bg-[url('/whatsapp-bg.png')] bg-repeat">
         {loading ? (
           <div>Loading messages…</div>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`my-2 flex ${msg.sender_id === currentUser.id ? "justify-end" : "justify-start"}`}
+              className={`flex ${msg.sender_id === currentUser.id ? "justify-end" : "justify-start"} mb-2`}
             >
               <div
-                className={`rounded-lg px-3 py-2 max-w-xs ${
-                  msg.sender_id === currentUser.id
-                    ? "bg-green-100 text-right"
-                    : "bg-gray-100"
-                }`}
+                className={`rounded-lg px-4 py-2 max-w-lg shadow 
+                ${msg.sender_id === currentUser.id
+                  ? "bg-green-100 text-right"
+                  : "bg-white"}`}
               >
-                {msg.content}
-                <div className="text-[10px] text-gray-400">
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                <div className="text-sm">{msg.content}</div>
+                <div className="text-[10px] text-gray-400 flex justify-end mt-1">
+                  {format(new Date(msg.created_at), "HH:mm")}
                 </div>
               </div>
             </div>
@@ -214,28 +211,37 @@ export default function ChatWindow({ chat, currentUser, otherUser }: ChatWindowP
         )}
         <div ref={messagesEndRef} />
       </div>
+
       {/* Typing indicator */}
       {peerIsTyping && (
-        <div className="text-xs text-gray-400 px-4 pb-2">Typing…</div>
+        <div className="absolute bottom-20 left-32 text-xs text-green-500 px-4 pb-2">
+          Typing…
+        </div>
       )}
+
+      {/* Input Bar */}
       <form
         onSubmit={sendMessage}
-        className="flex p-2 border-t bg-gray-50 dark:bg-[#222e35]"
+        className="flex items-center px-6 py-4 bg-white border-t space-x-2"
+        style={{ minHeight: "64px" }}
       >
+        <button type="button"><FiPaperclip size={22} className="text-gray-500" /></button>
+        <button type="button"><FiSmile size={22} className="text-gray-500" /></button>
         <input
-          className="flex-1 rounded-l px-2 py-1 outline-none"
+          className="flex-1 rounded-full border border-gray-200 px-4 py-2 outline-none"
+          placeholder="Message…"
           value={input}
           onChange={handleInputChange}
-          placeholder="Type your message…"
         />
+        <button type="button"><FiMic size={22} className="text-gray-500" /></button>
         <button
           type="submit"
-          className="bg-[#0a2f24] text-white px-4 py-1 rounded-r"
+          className="ml-2 bg-green-500 hover:bg-green-600 rounded-full p-2 text-white"
           disabled={!input.trim()}
         >
-          Send
+          <FiSend size={20} />
         </button>
       </form>
-    </section>
+    </div>
   );
 }
