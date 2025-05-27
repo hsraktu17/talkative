@@ -99,4 +99,17 @@
 * **Typing & Presence**: See when a user is online and typing. Unread counts show new messages.
 * **Responsive**: Works well on desktop and mobile. Supports dark and light themes.
 
-##
+## Planned Todos
+
+- [x]   Real-time one-on-one messaging (using Supabase Realtime)
+- [x]   User authentication (signup/login/logout with email and password)
+- [x]   User profiles (display name, avatar, online/offline status)
+- [x]   Typing indicator and online presence
+- [x]   Chat sidebar with unread message counts
+- [x]   Modern, minimal UI (Tailwind CSS, Radix UI, React Icons)
+- [ ]   Group Chat (multi-user, group avatar, member management)
+- [ ]   Theme Toggle (switch between dark/light modes, save preference)
+- [ ]   Chat Wallpaper (select/upload wallpapers, apply per chat)
+- [ ]   Media Upload (image/file/video upload, encryption, previews)
+- [ ]   Broadcasting Messages (send to multiple users at once)
+- [ ]   End-to-End Encryption (client-side encryption of all messages/media)
