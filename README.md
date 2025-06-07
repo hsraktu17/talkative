@@ -27,8 +27,8 @@
 1. **Clone the repo:**
 
    ```bash
-   git clone https://github.com/hsraktu17/periskope.git
-   cd periskope
+   git clone https://github.com/hsraktu17/talkative.git
+   cd talkative
    ```
 
 2. **Install dependencies:**
