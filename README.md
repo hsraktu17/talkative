@@ -99,6 +99,14 @@
 * **Typing & Presence**: See when a user is online and typing. Unread counts show new messages.
 * **Responsive**: Works well on desktop and mobile. Supports dark and light themes.
 
+## Testing
+
+Run the unit tests with:
+
+```bash
+npm test
+```
+
 ## Planned Todos
 
 - [x]   Real-time one-on-one messaging (using Supabase Realtime)
