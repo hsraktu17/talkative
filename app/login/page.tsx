@@ -17,8 +17,7 @@ export default function LoginPage() {
   const supabase =  supabaseBrowser()
   useEffect(() => {
     const fetchUser = async () => {
-      const user = await supabase.auth.getUser()
-      console.log(user)
+      await supabase.auth.getUser()
     }
     fetchUser()
   }, [supabase])
