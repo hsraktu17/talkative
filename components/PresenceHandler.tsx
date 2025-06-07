@@ -31,8 +31,6 @@ const PresenceHandler: React.FC<PresenceHandlerProps> = ({ currentUser }) => {
     };
     window.addEventListener("beforeunload", handleUnload);
 
-    console.log("date/time")
-
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
