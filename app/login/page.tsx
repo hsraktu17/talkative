@@ -30,7 +30,7 @@ export default function LoginPage() {
       <nav className="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#222e35] border-b border-gray-200 dark:border-[#2a3942]">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">P</div>
-          <span className="font-semibold text-xl text-[#111b21] dark:text-white">Periskope</span>
+          <span className="font-semibold text-xl text-[#111b21] dark:text-white">talkative</span>
         </div>
         <div>
           <Link
@@ -48,7 +48,7 @@ export default function LoginPage() {
           action={formAction}
           autoComplete="off"
         >
-          <h1 className="text-2xl font-bold mb-2 text-center text-[#111b21] dark:text-white">Login to Periskope</h1>
+          <h1 className="text-2xl font-bold mb-2 text-center text-[#111b21] dark:text-white">Login to talkative</h1>
           <p className="text-gray-400 text-sm text-center mb-2">Enter your credentials to access chats.</p>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
@@ -90,7 +90,7 @@ export default function LoginPage() {
       </main>
 
       <footer className="py-4 text-center text-xs text-gray-400 dark:text-gray-500">
-        &copy; {new Date().getFullYear()} Periskope. Made for the SDE1 assignment.
+        &copy; {new Date().getFullYear()} talkative. Made for the SDE1 assignment.
       </footer>
     </div>
   )
