@@ -113,3 +113,8 @@
 - [ ]   Media Upload (image/file/video upload, encryption, previews)
 - [ ]   Broadcasting Messages (send to multiple users at once)
 - [ ]   End-to-End Encryption (client-side encryption of all messages/media)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
