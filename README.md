@@ -39,6 +39,8 @@
    yarn install
    ```
 
+   This will also set up Husky git hooks for running lint checks on commits.
+
 3. **Configure Supabase:**
 
    * Create a new project in Supabase.
