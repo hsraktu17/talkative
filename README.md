@@ -2,11 +2,11 @@
 
 ## Overview
 
-**Periskope** is a real-time web-based chat application built with Next.js (React), Tailwind CSS, and Supabase. It features user authentication, instant messaging, online status, and an intuitive modern UI. The project demonstrates full-stack chat functionality suitable for learning, prototyping, or building your own scalable messenger.
+**Periskope** is a real-time web-based chat application built with Next.js (React) and a Go backend. It features user authentication, instant messaging, online status, and an intuitive modern UI. The project demonstrates full-stack chat functionality suitable for learning, prototyping, or building your own scalable messenger.
 
 ## Features
 
-* Real-time one-on-one messaging (using Supabase Realtime)
+* Real-time one-on-one messaging (WebSocket based)
 * User authentication (signup/login/logout with email and password)
 * User profiles (display name, avatar, online/offline status)
 * Typing indicator and online presence
@@ -20,7 +20,7 @@
 
 * Node.js (v18 or higher recommended)
 * npm or yarn
-* Supabase account ([https://supabase.com/](https://supabase.com/))
+* Go toolchain (1.21 or newer)
 
 ### Installation
 
@@ -41,58 +41,35 @@
 
    This will also set up Husky git hooks for running lint checks on commits.
 
-3. **Configure Supabase:**
+3. **Set up environment variables:**
 
-   * Create a new project in Supabase.
-   * Enable Email/Password Auth.
-   * Create these tables in your Supabase SQL editor:
-
-     ```sql
-     create table profiles (
-       id uuid primary key references auth.users(id),
-       display_name text,
-       email text,
-       avatar_url text,
-       last_seen timestamp
-     );
-
-     create table chats (
-       id uuid primary key default gen_random_uuid(),
-       user1_id uuid references profiles(id),
-       user2_id uuid references profiles(id),
-       updated_at timestamp default now()
-     );
-
-     create table messages (
-       id uuid primary key default gen_random_uuid(),
-       chat_id uuid references chats(id),
-       sender_id uuid references profiles(id),
-       content text,
-       created_at timestamp default now(),
-       read boolean default false
-     );
-     ```
-   * Disable Row Level Security (RLS) for quick testing, or add appropriate RLS policies for production use.
-
-4. **Set up environment variables:**
-
-   * Create a `.env.local` file in the root:
+   * Create a `.env` file in the project root and define:
 
      ```bash
-     NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+     JWT_SECRET=devsecret
+     ADDR=:8080
      ```
-   * Get these values from your Supabase project dashboard.
 
-5. **Run the app:**
+4. **Run the apps:**
+
+   In separate terminals run:
 
    ```bash
-   npm run dev
-   # or
-   yarn dev
+   npm run backend
+   npm run frontend
    ```
 
-   * Open [http://localhost:3000](http://localhost:3000) in your browser.
+  * Frontend will be on [http://localhost:3000](http://localhost:3000).
+
+### Backend
+
+The Go server lives in `apps/backend`. You can build it with:
+
+```bash
+go build ./apps/backend/cmd/server
+```
+
+Or run directly using the workspace script `npm run backend`.
 
 ## Usage
 
@@ -103,7 +80,7 @@
 
 ## Planned Todos
 
-- [x]   Real-time one-on-one messaging (using Supabase Realtime)
+- [x]   Real-time one-on-one messaging (WebSocket backend)
 - [x]   User authentication (signup/login/logout with email and password)
 - [x]   User profiles (display name, avatar, online/offline status)
 - [x]   Typing indicator and online presence

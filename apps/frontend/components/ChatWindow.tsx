@@ -4,8 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPaperclip, FiSmile, FiMic, FiSend, FiSearch, FiMoreVertical } from "react-icons/fi";
 import { format } from "date-fns";
 import type { Chat, Message, UserProfile, ChatListItem } from "@/lib/types";
-import { supabaseBrowser } from "@/utils/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { getMessages, sendMessage as sendMsgApi, connectWebSocket } from "@/utils/api";
 import { Avatar } from "./Avatar";
 
 interface ChatWindowProps {
@@ -24,23 +23,18 @@ export default function ChatWindow({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+  const [typingUsers] = useState<string[]>([]);
+  const [onlineUserIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   
   useEffect(() => {
     async function fetchMessages() {
       setLoading(true);
-      const supabase = supabaseBrowser();
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("chat_id", chat.id)
-        .order("created_at", { ascending: true });
+      const data = await getMessages(chat.id);
       setMessages(data as Message[] ?? []);
       setLoading(false);
     }
@@ -49,61 +43,29 @@ export default function ChatWindow({
 
   
   useEffect(() => {
-    const supabase = supabaseBrowser();
-    const channel = supabase
-      .channel(`messages:chat-${chat.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `chat_id=eq.${chat.id}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => {
-            if (prev.some((msg) => msg.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-        }
-      )
-      .subscribe();
+    const ws = wsRef.current;
     return () => {
-      supabase.removeChannel(channel);
+      if (ws) ws.close();
     };
   }, [chat.id]);
 
   
   useEffect(() => {
-    const supabase = supabaseBrowser();
-    const channel = supabase.channel(`presence:chat-${chat.id}`, {
-      config: { presence: { key: currentUser.id } },
-    });
-    channel.on("presence", { event: "sync" }, () => {
-      const state = channel.presenceState();
-      type PresenceInfo = { typing: boolean };
-      const typers = Object.entries(state)
-        .filter(([id, info]) => {
-          if (id === currentUser.id) return false;
-          if (!Array.isArray(info) || !info[0]) return false;
-          const presence = info[0] as unknown as PresenceInfo;
-          return presence.typing;
-        })
-        .map(([id]) => id as string);
-      setTypingUsers(typers);
-      setOnlineUserIds(Object.keys(state));
-    });
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        channel.track({ typing: false });
-      }
-    });
-    presenceChannelRef.current = channel;
-    return () => {
-      supabase.removeChannel(channel);
+    const token = localStorage.getItem("token") || "";
+    const ws = connectWebSocket(token);
+    wsRef.current = ws;
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "message" && msg.message.chat_id === chat.id) {
+          setMessages((prev) => [...prev, msg.message as Message]);
+        }
+      } catch {}
     };
-  }, [chat.id, currentUser.id]);
+    return () => {
+      ws.close();
+    };
+  }, [chat.id]);
 
   
   useEffect(() => {
@@ -111,50 +73,22 @@ export default function ChatWindow({
   }, [messages]);
 
   
-  const broadcastTyping = useCallback((typing: boolean) => {
-    const channel = presenceChannelRef.current;
-    if (channel) channel.track({ typing });
-  }, []);
-
-  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    broadcastTyping(true);
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      broadcastTyping(false);
-    }, 1500);
   };
 
   
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
-    const supabase = supabaseBrowser();
-    const { data, error } = await supabase
-      .from("messages")
-      .insert([
-        {
-          chat_id: chat.id,
-          sender_id: currentUser.id,
-          content: input.trim(),
-        },
-      ])
-      .select("*")
-      .single();
-    if (!error && data) {
-      setMessages((prev) => {
-        if (prev.some((msg) => msg.id === data.id)) return prev;
-        return [...prev, data as Message];
-      });
-      setInput("");
-      broadcastTyping(false);
-      onMessageSent(data as Message); // Reorders sidebar on send
-    }
+    const data = await sendMsgApi(chat.id, input.trim());
+    setMessages((prev) => [...prev, data as Message]);
+    setInput("");
+    onMessageSent(data as Message);
   }
 
-  const peerIsOnline = onlineUserIds.includes(otherUser.id);
-  const peerIsTyping = typingUsers.includes(otherUser.id);
+  const peerIsOnline = false;
+  const peerIsTyping = false;
 
   return (
     <div className="flex flex-col h-full w-full bg-[#f0f2f5] relative">

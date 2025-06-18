@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { supabaseBrowser } from "@/utils/supabase/client";
+import { connectWebSocket } from "@/utils/api";
 import type { UserProfile } from "@/lib/types";
 
 interface PresenceHandlerProps {
@@ -10,31 +10,22 @@ interface PresenceHandlerProps {
 const PresenceHandler: React.FC<PresenceHandlerProps> = ({ currentUser }) => {
   useEffect(() => {
     if (!currentUser) return;
-    const supabase = supabaseBrowser();
-
-    const channel = supabase.channel("presence-global", {
-      config: { presence: { key: currentUser.id } }
-    });
-
-    channel.subscribe();
-    channel.track({ online: true });
-
-    const interval = setInterval(async () => {
-      await supabase.from("profiles")
-        .update({ last_seen: new Date().toISOString() })
-        .eq("id", currentUser.id);
-      channel.track({ online: true });
+    const token = localStorage.getItem("token") || "";
+    const ws = connectWebSocket(token);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "presence", online: true }));
+    };
+    const interval = setInterval(() => {
+      ws.send(JSON.stringify({ type: "presence", online: true }));
     }, 20000);
-
     const handleUnload = () => {
-      channel.untrack();
+      ws.close();
     };
     window.addEventListener("beforeunload", handleUnload);
-
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
-      supabase.removeChannel(channel);
+      ws.close();
     };
   }, [currentUser]);
 
