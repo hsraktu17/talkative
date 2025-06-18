@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/utils/supabase/client";
+import { createChat, getChats } from "@/utils/api";
 import type { Chat, UserProfile } from "@/lib/types";
 
 interface DMChatLoaderProps {
@@ -30,31 +30,15 @@ export default function DMChatLoader({ currentUser, peerId, children }: DMChatLo
       setError(null);
 
       try {
-        const supabase = supabaseBrowser();
-
-        // Try to fetch existing chat
-        const { data: existingChat, error } = await supabase
-          .from("chats")
-          .select("*")
-          .or(
-            `and(user1_id.eq.${currentUser.id},user2_id.eq.${peerId}),and(user1_id.eq.${peerId},user2_id.eq.${currentUser.id})`
-          )
-          .maybeSingle();
-
-        if (error) throw error;
-
+        const chats = await getChats() as Chat[];
+        let existingChat = chats.find(c =>
+          (c.user1_id === currentUser.id && c.user2_id === peerId) ||
+          (c.user1_id === peerId && c.user2_id === currentUser.id)
+        );
         if (existingChat) {
-          setChat(existingChat as Chat);
+          setChat(existingChat);
         } else {
-          const { data: newChat, error: createError } = await supabase
-            .from("chats")
-            .insert([
-              { user1_id: currentUser.id, user2_id: peerId },
-            ])
-            .select("*")
-            .single();
-
-          if (createError) throw createError;
+          const newChat = await createChat(peerId!);
           setChat(newChat as Chat);
         }
       } catch (e: unknown) {
